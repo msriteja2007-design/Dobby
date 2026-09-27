@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    
+    <!-- Cute magical companion - Error state -->
+    <!-- Body -->
+    <path
+        android:fillColor="#6B4CE6"
+        android:pathData="M28,8C16.9,8 8,16.9 8,28C8,39.1 16.9,48 28,48C39.1,48 48,39.1 48,28C48,16.9 39.1,8 28,8Z"/>
+    
+    <!-- Inner face area -->
+    <path
+        android:fillColor="#8B6FFA"
+        android:pathData="M28,12C18.1,12 10,20.1 10,30C10,39.9 18.1,48 28,48C37.9,48 46,39.9 46,30C46,20.1 37.9,12 28,12Z"/>
+    
+    <!-- Concerned eyes - one squinting -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,22 A4,4 0 1,1 24,22 A4,4 0 1,1 16,22"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,22 A4,4 0 1,1 40,22 A4,4 0 1,1 32,22"/>
+    
+    <!-- Worried pupils -->
+    <path
+        android:fillColor="#2D1B69"
+        android:pathData="M18,25 A2,2 0 1,1 22,25 A2,2 0 1,1 18,25"/>
+    <path
+        android:fillColor="#2D1B69"
+        android:pathData="M34,25 A2,2 0 1,1 38,25 A2,2 0 1,1 34,25"/>
+    
+    <!-- Worried expression -->
+    <path
+        android:fillColor="#4A2DB3"
+        android:pathData="M22,38 Q28,36 34,38"/>
+    
+    <!-- Concerned eyebrow -->
+    <path
+        android:fillColor="#2D1B69"
+        android:pathData="M16,22 L20,20 L24,22"/>
+    <path
+        android:fillColor="#2D1B69"
+        android:pathData="M32,22 L36,20 L40,22"/>
+    
+    <!-- Error indicator -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M40,8 A4,4 0 1,1 48,8 A4,4 0 1,1 40,8"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,10 L46,14"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,10 L42,14"/>
+</vector>

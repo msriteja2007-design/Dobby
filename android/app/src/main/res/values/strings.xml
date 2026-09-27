@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Dobby</string>
+    <string name="a11y_description">Dobby uses Accessibility only to tap Amazon controls such as Add to Cart. It will not checkout or enter payment.</string>
+</resources>
