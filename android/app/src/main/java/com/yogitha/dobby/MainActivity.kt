@@ -602,9 +602,9 @@ fun DobbyScreen(
                         
                         if (workflow != null) {
                             addToHistory("✓ Learned workflow: ${workflow.name}")
-                            speak("Dobby has learned this workflow!")
+                            speak("Learning complete. I learned this workflow.")
                             phase = DobbyPhase.DONE
-                            actionLine = "Dobby has learned this workflow!"
+                            actionLine = "Learning complete. I learned this workflow."
                             currentTask = "Done"
                             addToHistory("✓ Done")
                             
@@ -695,7 +695,7 @@ fun DobbyScreen(
                                 addToHistory("🎓 Entering teaching mode")
                                 val workflowName = actionJson.optString("workflow_name", "custom_workflow")
                                 WorkflowManager.startTeaching(workflowName)
-                                confirmations.add("Dobby is watching. Please demonstrate the workflow.")
+                                confirmations.add("Learning mode activated. Show me what to do.")
                             } else {
                                 phase = DobbyPhase.ACTING
                                 addToHistory("⚡ Acting: $intentName")

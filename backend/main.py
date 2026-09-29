@@ -759,14 +759,14 @@ def fallback_intent(message: str, allow_teach: bool = True) -> dict:
     text = raw.lower()
 
     # Check for teaching mode commands
-    if re.search(r"\b(?:watch|learn|teach|demonstrate|show)\s+(?:what|i)\s+(?:i\s+)?do\b", text, re.IGNORECASE):
+    if re.search(r"\b(?:start\s+)?(?:teaching|learning|watch|learn|teach|demonstrate|show)\s+(?:what|i)\s+(?:i\s+)?do\b", text, re.IGNORECASE):
         return remember_session(
             raw,
             "Teaching mode",
             [_intent_payload(
                 "teach_workflow",
                 workflow_name="custom_workflow",
-                message="Dobby is watching. Please demonstrate the workflow.",
+                message="Learning mode activated. Show me what to do.",
             )],
         )
     
@@ -776,7 +776,7 @@ def fallback_intent(message: str, allow_teach: bool = True) -> dict:
             "Teaching complete",
             [_intent_payload(
                 "unknown",
-                message="Dobby has finished learning this workflow.",
+                message="Learning complete. I learned this workflow.",
             )],
         )
 

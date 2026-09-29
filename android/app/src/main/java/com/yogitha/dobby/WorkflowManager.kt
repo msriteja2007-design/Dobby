@@ -48,23 +48,105 @@ object WorkflowManager {
 
     fun stopTeaching(): Workflow? {
         val session = currentTeachingSession ?: return null
-        if (session.steps.isEmpty()) {
+        
+        // Get accessibility steps if available
+        val accessibilitySteps = DobbyAccessibilityService.getTeachingSteps()
+        
+        // Merge observed steps with captured actions
+        val combinedSteps = if (accessibilitySteps.isNotEmpty()) {
+            convertAccessibilityStepsToWorkflowSteps(accessibilitySteps, session.steps)
+        } else {
+            session.steps.toList()
+        }
+        
+        if (combinedSteps.isEmpty()) {
             currentTeachingSession = null
+            DobbyAccessibilityService.clearTeachingSteps()
             return null
         }
+
+        // Extract variables from steps
+        val variables = extractVariables(combinedSteps)
 
         val workflow = Workflow(
             id = "workflow_${System.currentTimeMillis()}",
             name = session.workflowName,
-            description = "Learned from user demonstration",
-            steps = session.steps.toList(),
-            variables = session.variables.toMap(),
+            description = generateWorkflowDescription(combinedSteps),
+            steps = combinedSteps,
+            variables = variables,
             createdAt = session.startTime
         )
 
         workflows.add(workflow)
         currentTeachingSession = null
+        DobbyAccessibilityService.clearTeachingSteps()
         return workflow
+    }
+    
+    private fun convertAccessibilityStepsToWorkflowSteps(
+        accessibilitySteps: List<TeachingStep>,
+        actionSteps: List<WorkflowStep>
+    ): List<WorkflowStep> {
+        val workflowSteps = mutableListOf<WorkflowStep>()
+        
+        for (accessibilityStep in accessibilitySteps) {
+            val action = when {
+                accessibilityStep.eventType == "TYPE_VIEW_CLICKED" -> "tap"
+                accessibilityStep.eventType == "TYPE_VIEW_TEXT_CHANGED" -> "type"
+                accessibilityStep.eventType == "TYPE_WINDOW_STATE_CHANGED" -> "navigate"
+                else -> "unknown"
+            }
+            
+            // Create semantic description
+            val description = when {
+                accessibilityStep.text.isNotBlank() -> "Tap on: ${accessibilityStep.text}"
+                accessibilityStep.contentDescription.isNotBlank() -> "Tap on: ${accessibilityStep.contentDescription}"
+                accessibilityStep.className?.contains("EditText") == true -> "Text field"
+                accessibilityStep.className?.contains("Button") == true -> "Button"
+                else -> "UI element"
+            }
+            
+            workflowSteps.add(WorkflowStep(
+                action = action,
+                app = accessibilityStep.packageName,
+                uiElement = accessibilityStep.text.takeIf { it.isNotBlank() } ?: accessibilityStep.contentDescription,
+                description = description
+            ))
+        }
+        
+        // Add any explicit action steps from voice commands
+        workflowSteps.addAll(actionSteps)
+        
+        return workflowSteps
+    }
+    
+    private fun extractVariables(steps: List<WorkflowStep>): Map<String, String> {
+        val variables = mutableMapOf<String, String>()
+        
+        for (step in steps) {
+            // Extract query-like values
+            if (step.action == "amazon_search" || step.action == "play_song") {
+                step.query?.let { 
+                    variables["query"] = "product_query"
+                }
+            }
+            if (step.action == "call_contact") {
+                step.contact?.let {
+                    variables["contact"] = "contact_name"
+                }
+            }
+        }
+        
+        return variables
+    }
+    
+    private fun generateWorkflowDescription(steps: List<WorkflowStep>): String {
+        val descriptions = steps.mapNotNull { it.description }.take(3)
+        return if (descriptions.isNotEmpty()) {
+            "Workflow: ${descriptions.joinToString(" → ")}"
+        } else {
+            "Custom workflow"
+        }
     }
 
     fun isTeaching(): Boolean = currentTeachingSession != null
@@ -82,15 +164,19 @@ object WorkflowManager {
     fun getWorkflows(): List<Workflow> = workflows.toList()
 
     fun findMatchingWorkflow(userIntent: String): Workflow? {
-        // Simple keyword matching for MVP
         val intentLower = userIntent.lowercase()
         
         for (workflow in workflows) {
             val nameLower = workflow.name.lowercase()
             val descLower = workflow.description.lowercase()
             
-            // Check if workflow name or description matches intent
+            // Check for workflow name match
             if (intentLower.contains(nameLower) || nameLower.contains(intentLower)) {
+                return workflow
+            }
+            
+            // Check for semantic pattern matching
+            if (matchesWorkflowPattern(intentLower, workflow)) {
                 return workflow
             }
             
@@ -105,6 +191,37 @@ object WorkflowManager {
         }
         
         return null
+    }
+    
+    private fun matchesWorkflowPattern(intent: String, workflow: Workflow): Boolean {
+        // Check for Amazon shopping patterns
+        if (intent.contains("amazon") && workflow.description.contains("amazon", ignoreCase = true)) {
+            return true
+        }
+        
+        // Check for Spotify patterns
+        if (intent.contains("spotify") || intent.contains("play") && 
+            workflow.description.contains("spotify", ignoreCase = true)) {
+            return true
+        }
+        
+        // Check for action patterns
+        val intentActions = detectActionsInIntent(intent)
+        val workflowActions = workflow.steps.map { it.action }.toSet()
+        
+        return intentActions.intersect(workflowActions).isNotEmpty()
+    }
+    
+    private fun detectActionsInIntent(intent: String): Set<String> {
+        val actions = mutableSetOf<String>()
+        
+        if (intent.contains("search") || intent.contains("find")) actions.add("search")
+        if (intent.contains("play")) actions.add("play")
+        if (intent.contains("call")) actions.add("call")
+        if (intent.contains("open") || intent.contains("launch")) actions.add("open")
+        if (intent.contains("cart")) actions.add("add_to_cart")
+        
+        return actions
     }
 
     fun generalizeWorkflow(workflow: Workflow, newParameters: Map<String, String>): List<WorkflowStep> {

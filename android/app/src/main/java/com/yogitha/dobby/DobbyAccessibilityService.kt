@@ -13,6 +13,9 @@ class DobbyAccessibilityService : AccessibilityService() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var scrollAttempts = 0
+    
+    // Teaching mode observation
+    private var teachingSteps = mutableListOf<TeachingStep>()
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -21,6 +24,12 @@ class DobbyAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // Handle teaching mode observation
+        if (WorkflowManager.isTeaching()) {
+            observeEventForTeaching(event)
+        }
+        
+        // Handle normal pending actions
         if (pendingAction == null) return
         val pkg = event?.packageName?.toString().orEmpty()
         if (!pkg.contains("amazon", ignoreCase = true)) return
@@ -32,6 +41,42 @@ class DobbyAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         if (instance === this) instance = null
         super.onDestroy()
+    }
+    
+    private fun observeEventForTeaching(event: AccessibilityEvent?) {
+        if (event == null) return
+        
+        val pkg = event.packageName?.toString() ?: ""
+        val eventType = eventTypeToString(event.eventType)
+        val text = event.text?.joinToString(" ") ?: ""
+        val contentDescription = event.contentDescription?.toString() ?: ""
+        
+        // Only log meaningful events
+        if (text.isNotBlank() || contentDescription.isNotBlank() || 
+            eventType in listOf("TYPE_VIEW_CLICKED", "TYPE_WINDOW_STATE_CHANGED")) {
+            
+            val step = TeachingStep(
+                timestamp = System.currentTimeMillis(),
+                packageName = pkg,
+                eventType = eventType,
+                text = text,
+                contentDescription = contentDescription,
+                className = event.className?.toString()
+            )
+            
+            teachingSteps.add(step)
+            android.util.Log.e("DobbyTeaching", "Observed: $eventType in $pkg - text: $text")
+        }
+    }
+    
+    private fun eventTypeToString(eventType: Int): String {
+        return when (eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED -> "TYPE_VIEW_CLICKED"
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> "TYPE_WINDOW_STATE_CHANGED"
+            AccessibilityEvent.TYPE_VIEW_FOCUSED -> "TYPE_VIEW_FOCUSED"
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> "TYPE_VIEW_TEXT_CHANGED"
+            else -> "TYPE_$eventType"
+        }
     }
 
     private fun tryPending() {
@@ -410,6 +455,14 @@ class DobbyAccessibilityService : AccessibilityService() {
         }
 
         fun isConnected(): Boolean = instance != null
+        
+        fun getTeachingSteps(): List<TeachingStep> {
+            return instance?.teachingSteps?.toList() ?: emptyList()
+        }
+        
+        fun clearTeachingSteps() {
+            instance?.teachingSteps?.clear()
+        }
 
         private fun isAmazonPackage(pkg: String?): Boolean {
             return pkg?.contains("amazon", ignoreCase = true) == true

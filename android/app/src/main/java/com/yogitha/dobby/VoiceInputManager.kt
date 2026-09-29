@@ -29,9 +29,10 @@ object DobbyShared {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-val BACKEND_URLS = listOf(
-    "https://dobby-ct4g.onrender.com"
-)
+    val BACKEND_URLS = listOf(
+        "https://dobby-ct4g.onrender.com"
+    )
+
     val APP_ALIASES = mapOf(
         "spotify" to listOf("com.spotify.music"),
         "whatsapp" to listOf("com.whatsapp"),
